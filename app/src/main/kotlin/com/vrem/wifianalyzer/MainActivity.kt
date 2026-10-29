@@ -17,7 +17,6 @@
  */
 package com.vrem.wifianalyzer
 
-import android.content.Context
 import android.content.SharedPreferences
 import android.content.SharedPreferences.OnSharedPreferenceChangeListener
 import android.content.res.Configuration
@@ -25,21 +24,20 @@ import android.os.Bundle
 import android.view.Menu
 import android.view.MenuItem
 import android.view.View
+import androidx.activity.result.ActivityResultLauncher
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.core.view.GravityCompat
 import androidx.drawerlayout.widget.DrawerLayout
 import com.google.android.material.navigation.NavigationView
 import com.vrem.annotation.OpenClass
-import com.vrem.util.createContext
 import com.vrem.wifianalyzer.navigation.NavigationMenu
 import com.vrem.wifianalyzer.navigation.NavigationMenuControl
 import com.vrem.wifianalyzer.navigation.NavigationMenuController
 import com.vrem.wifianalyzer.navigation.options.OptionMenu
-import com.vrem.wifianalyzer.settings.Repository
-import com.vrem.wifianalyzer.settings.Settings
 import com.vrem.wifianalyzer.wifi.accesspoint.ConnectionView
-import com.vrem.wifianalyzer.wifi.scanner.ScannerService
+import com.vrem.wifianalyzer.wifi.scanner.collectWiFiData
 
 @OpenClass
 class MainActivity :
@@ -52,8 +50,8 @@ class MainActivity :
     internal lateinit var optionMenu: OptionMenu
     internal lateinit var connectionView: ConnectionView
 
-    override fun attachBaseContext(newBase: Context) =
-        super.attachBaseContext(newBase.createContext(Settings(Repository(newBase)).languageLocale()))
+    internal val permissionLauncher: ActivityResultLauncher<String> =
+        registerForActivityResult(ActivityResultContracts.RequestPermission(), ::onPermissionResult)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         val mainContext = MainContext.INSTANCE
@@ -66,13 +64,14 @@ class MainActivity :
         mainReload = MainReload(settings)
 
         super.onCreate(savedInstanceState)
+        settings.migrateLanguage()
         installSplashScreen()
         setContentView(R.layout.main_activity)
 
         settings.registerOnSharedPreferenceChangeListener(this)
         optionMenu = OptionMenu()
 
-        keepScreenOn()
+        keepScreenOn(settings)
 
         val toolbar = setupToolbar()
         drawerNavigation = DrawerNavigation(this, toolbar)
@@ -83,6 +82,7 @@ class MainActivity :
         onNavigationItemSelected(currentMenuItem())
 
         connectionView = ConnectionView(this)
+        collectWiFiData { connectionView.update(it) }
 
         onBackPressedDispatcher.addCallback(this, MainActivityBackPressed(this))
     }
@@ -97,13 +97,8 @@ class MainActivity :
         drawerNavigation.onConfigurationChanged(newConfig)
     }
 
-    override fun onRequestPermissionsResult(
-        requestCode: Int,
-        permissions: Array<String>,
-        grantResults: IntArray,
-    ) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-        if (!MainContext.INSTANCE.permissionService.granted(requestCode, grantResults)) {
+    internal fun onPermissionResult(granted: Boolean) {
+        if (!granted) {
             finish()
         }
     }
@@ -125,7 +120,7 @@ class MainActivity :
             MainContext.INSTANCE.scannerService.stop()
             recreate()
         } else {
-            keepScreenOn()
+            keepScreenOn(mainContext.settings)
             update()
         }
     }
@@ -152,16 +147,15 @@ class MainActivity :
     }
 
     public override fun onPause() {
-        val scannerService: ScannerService = MainContext.INSTANCE.scannerService
+        val scannerService = MainContext.INSTANCE.scannerService
         scannerService.pause()
-        scannerService.unregister(connectionView)
         updateActionBar()
         super.onPause()
     }
 
     public override fun onResume() {
         super.onResume()
-        val scannerService: ScannerService = MainContext.INSTANCE.scannerService
+        val scannerService = MainContext.INSTANCE.scannerService
         if (MainContext.INSTANCE.permissionService.permissionGranted()) {
             if (!MainContext.INSTANCE.permissionService.locationEnabled()) {
                 startLocationSettings()
@@ -171,7 +165,6 @@ class MainActivity :
             scannerService.pause()
         }
         updateActionBar()
-        scannerService.register(connectionView)
     }
 
     public override fun onStop() {
@@ -218,7 +211,8 @@ class MainActivity :
 
     override fun navigationView(): NavigationView = navigationMenuController.drawerNavigationView
 
-    fun mainConnectionVisibility(visibility: Int) {
+    fun wiFiStatusVisibility(visibility: Int) {
         findViewById<View>(R.id.main_connection).visibility = visibility
+        findViewById<View>(R.id.main_warning_container).visibility = visibility
     }
 }

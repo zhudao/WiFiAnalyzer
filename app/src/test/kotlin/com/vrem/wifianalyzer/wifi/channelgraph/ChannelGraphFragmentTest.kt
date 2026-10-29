@@ -23,20 +23,31 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.vrem.wifianalyzer.MainContextHelper
 import com.vrem.wifianalyzer.R
 import com.vrem.wifianalyzer.RobolectricUtil
+import com.vrem.wifianalyzer.wifi.model.WiFiData
+import kotlinx.coroutines.flow.MutableStateFlow
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.After
+import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.mockito.kotlin.doReturn
 import org.mockito.kotlin.times
 import org.mockito.kotlin.verify
+import org.mockito.kotlin.whenever
 import org.robolectric.annotation.Config
 
 @RunWith(AndroidJUnit4::class)
-@Config(sdk = [Build.VERSION_CODES.BAKLAVA])
+@Config(sdk = [Build.VERSION_CODES.CINNAMON_BUN])
 class ChannelGraphFragmentTest {
-    private val mainActivity = RobolectricUtil.INSTANCE.activity
+    private val mainActivity = RobolectricUtil.INSTANCE.mainActivity
     private val scanner = MainContextHelper.INSTANCE.scannerService
     private val fixture = ChannelGraphFragment()
+    private val wiFiData = MutableStateFlow(WiFiData.EMPTY)
+
+    @Before
+    fun setUp() {
+        doReturn(wiFiData).whenever(scanner).wiFiData()
+    }
 
     @After
     fun tearDown() {
@@ -45,50 +56,50 @@ class ChannelGraphFragmentTest {
 
     @Test
     fun onCreateView() {
-        // setup
+        // Act
         RobolectricUtil.INSTANCE.startFragment(fixture)
-        // validate
+        // Assert
         assertThat(fixture).isNotNull()
+        assertThat(wiFiData.subscriptionCount.value).isEqualTo(1)
         verify(scanner).update()
-        verify(scanner).register(fixture.graphAdapter)
     }
 
     @Test
     fun refreshEnabled() {
-        // setup
+        // Arrange
         RobolectricUtil.INSTANCE.startFragment(fixture)
-        // validate
+        // Assert
         val swipeRefreshLayout: SwipeRefreshLayout = fixture.view!!.findViewById(R.id.graphRefresh)
         assertThat(swipeRefreshLayout.isEnabled).isTrue
     }
 
     @Test
     fun onResume() {
-        // setup
+        // Arrange
         RobolectricUtil.INSTANCE.startFragment(fixture)
-        // execute
+        // Act
         fixture.onResume()
-        // validate
+        // Assert
+        assertThat(wiFiData.subscriptionCount.value).isEqualTo(1)
         verify(scanner, times(2)).update()
-        verify(scanner, times(2)).register(fixture.graphAdapter)
     }
 
     @Test
-    fun onPause() {
-        // setup
+    fun onDestroyView() {
+        // Arrange
         RobolectricUtil.INSTANCE.startFragment(fixture)
-        // execute
-        fixture.onPause()
-        // validate
-        verify(scanner).unregister(fixture.graphAdapter)
+        // Act
+        RobolectricUtil.INSTANCE.removeFragment(fixture)
+        // Assert
+        assertThat(wiFiData.subscriptionCount.value).isEqualTo(0)
     }
 
     @Config(sdk = [Build.VERSION_CODES.P])
     @Test
     fun refreshDisabled() {
-        // setup
+        // Arrange
         RobolectricUtil.INSTANCE.startFragment(fixture)
-        // validate
+        // Assert
         val swipeRefreshLayout: SwipeRefreshLayout = fixture.view!!.findViewById(R.id.graphRefresh)
         assertThat(swipeRefreshLayout.isRefreshing).isFalse
         assertThat(swipeRefreshLayout.isEnabled).isFalse

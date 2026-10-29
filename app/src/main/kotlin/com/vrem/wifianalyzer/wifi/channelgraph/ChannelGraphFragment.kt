@@ -29,6 +29,7 @@ import com.vrem.wifianalyzer.MainContext
 import com.vrem.wifianalyzer.databinding.GraphContentBinding
 import com.vrem.wifianalyzer.wifi.band.WiFiBand
 import com.vrem.wifianalyzer.wifi.graphutils.GraphAdapter
+import com.vrem.wifianalyzer.wifi.scanner.collectWiFiData
 
 class ChannelGraphFragment :
     Fragment(),
@@ -49,9 +50,9 @@ class ChannelGraphFragment :
             swipeRefreshLayout.isRefreshing = false
             swipeRefreshLayout.isEnabled = false
         }
-        val graphViews = WiFiBand.entries.map { wiFiBand -> ChannelGraphView(wiFiBand) }
-        graphAdapter = GraphAdapter(graphViews)
-        graphAdapter.graphViews().forEach { binding.graphFlipper.addView(it) }
+        val channelGraphs = WiFiBand.entries.map { wiFiBand -> ChannelGraph(wiFiBand) }
+        graphAdapter = GraphAdapter(channelGraphs)
+        graphAdapter.graphs().forEach { binding.graphFlipper.addView(it) }
         return binding.root
     }
 
@@ -61,14 +62,21 @@ class ChannelGraphFragment :
         swipeRefreshLayout.isRefreshing = false
     }
 
+    override fun onViewCreated(
+        view: View,
+        savedInstanceState: Bundle?,
+    ) {
+        super.onViewCreated(view, savedInstanceState)
+        viewLifecycleOwner.collectWiFiData(graphAdapter::update)
+    }
+
     override fun onResume() {
         super.onResume()
-        MainContext.INSTANCE.scannerService.register(graphAdapter)
         onRefresh()
     }
 
-    override fun onPause() {
-        MainContext.INSTANCE.scannerService.unregister(graphAdapter)
-        super.onPause()
+    override fun onDestroyView() {
+        graphAdapter.destroy()
+        super.onDestroyView()
     }
 }

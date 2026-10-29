@@ -19,7 +19,6 @@ package com.vrem.wifianalyzer.wifi.graphutils
 
 import android.content.Context
 import android.content.res.Resources
-import com.vrem.wifianalyzer.MainContextHelper
 import com.vrem.wifianalyzer.R
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.After
@@ -33,12 +32,10 @@ import org.mockito.kotlin.whenever
 class GraphColorsTest {
     private val resources: Resources = mock()
     private val context: Context = mock()
-    private val fixture = GraphColors()
+    private val fixture = GraphColors(context)
 
     @Before
     fun setUp() {
-        val mainActivity = MainContextHelper.INSTANCE.mainActivity
-        whenever(mainActivity.applicationContext).thenReturn(context)
         whenever(context.resources).thenReturn(resources)
         whenever(resources.getStringArray(R.array.graph_colors)).thenReturn(withColors())
     }
@@ -49,14 +46,13 @@ class GraphColorsTest {
         verify(resources).getStringArray(R.array.graph_colors)
         verifyNoMoreInteractions(context)
         verifyNoMoreInteractions(resources)
-        MainContextHelper.INSTANCE.restore()
     }
 
     @Test
     fun getColorStartsOverWhenEndIsReached() {
-        // setup
+        // Arrange
         val graphColors = withGraphColors()
-        // validate & execute
+        // Act & Assert
         assertThat(fixture.graphColor()).isEqualTo(graphColors[2])
         assertThat(fixture.graphColor()).isEqualTo(graphColors[1])
         assertThat(fixture.graphColor()).isEqualTo(graphColors[0])
@@ -65,10 +61,10 @@ class GraphColorsTest {
 
     @Test
     fun addColorAddsColorToAvailablePool() {
-        // setup
+        // Arrange
         val graphColors = withGraphColors()
         val expected = graphColors[2]
-        // validate & execute
+        // Act & Assert
         assertThat(fixture.graphColor()).isEqualTo(expected)
         fixture.addColor(expected.primary)
         assertThat(fixture.graphColor()).isEqualTo(expected)
@@ -76,10 +72,10 @@ class GraphColorsTest {
 
     @Test
     fun addColorDoesNotAddExistingColor() {
-        // setup
+        // Arrange
         val graphColors = withGraphColors()
         val expected = graphColors[2]
-        // validate & execute
+        // Act & Assert
         assertThat(fixture.graphColor()).isEqualTo(expected)
         fixture.addColor(expected.primary)
         fixture.addColor(expected.primary)
@@ -88,23 +84,23 @@ class GraphColorsTest {
 
     @Test
     fun addColorWithNonExistingColor() {
-        // setup
+        // Arrange
         val size = fixture.graphColor()
-        // execute
+        // Act
         fixture.addColor(123)
-        // validate
+        // Assert
         assertThat(fixture.graphColor()).isNotEqualTo(size)
     }
 
     @Test
     fun graphColorCyclesThroughColors() {
-        // setup
+        // Arrange
         val graphColors = withGraphColors()
         val expected = graphColors[1]
         val original = fixture.graphColor()
-        // execute
+        // Act
         val actual = fixture.graphColor()
-        // validate
+        // Assert
         assertThat(actual).isEqualTo(expected)
         assertThat(original).isEqualTo(graphColors[2])
     }

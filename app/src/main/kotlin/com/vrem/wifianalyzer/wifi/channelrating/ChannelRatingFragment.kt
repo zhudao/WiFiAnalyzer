@@ -29,6 +29,7 @@ import com.vrem.util.buildVersionP
 import com.vrem.wifianalyzer.MainContext
 import com.vrem.wifianalyzer.R
 import com.vrem.wifianalyzer.databinding.ChannelRatingContentBinding
+import com.vrem.wifianalyzer.wifi.scanner.collectWiFiData
 
 class ChannelRatingFragment :
     Fragment(),
@@ -42,7 +43,7 @@ class ChannelRatingFragment :
         container: ViewGroup?,
         savedInstanceState: Bundle?,
     ): View {
-        val binding: ChannelRatingContentBinding = ChannelRatingContentBinding.inflate(inflater, container, false)
+        val binding = ChannelRatingContentBinding.inflate(inflater, container, false)
         swipeRefreshLayout = binding.channelRatingRefresh
         swipeRefreshLayout.setOnRefreshListener(this)
         if (buildVersionP()) {
@@ -61,14 +62,16 @@ class ChannelRatingFragment :
         swipeRefreshLayout.isRefreshing = false
     }
 
-    override fun onResume() {
-        super.onResume()
-        MainContext.INSTANCE.scannerService.register(channelRatingAdapter)
-        onRefresh()
+    override fun onViewCreated(
+        view: View,
+        savedInstanceState: Bundle?,
+    ) {
+        super.onViewCreated(view, savedInstanceState)
+        viewLifecycleOwner.collectWiFiData(channelRatingAdapter::update)
     }
 
-    override fun onPause() {
-        MainContext.INSTANCE.scannerService.unregister(channelRatingAdapter)
-        super.onPause()
+    override fun onResume() {
+        super.onResume()
+        onRefresh()
     }
 }

@@ -19,20 +19,20 @@ package com.vrem.wifianalyzer.settings
 
 import android.content.SharedPreferences.OnSharedPreferenceChangeListener
 import com.vrem.annotation.OpenClass
+import com.vrem.util.EMPTY
 import com.vrem.util.buildMinVersionQ
-import com.vrem.util.defaultCountryCode
-import com.vrem.util.defaultLanguageTag
-import com.vrem.util.findByLanguageTag
+import com.vrem.util.findByLegacyLanguageTag
 import com.vrem.util.findOne
 import com.vrem.util.findSet
+import com.vrem.util.findSupportedLanguage
 import com.vrem.util.ordinals
+import com.vrem.util.toLegacyLanguageTag
 import com.vrem.wifianalyzer.R
 import com.vrem.wifianalyzer.navigation.MAIN_NAVIGATION
 import com.vrem.wifianalyzer.navigation.NavigationMenu
 import com.vrem.wifianalyzer.wifi.accesspoint.AccessPointViewType
 import com.vrem.wifianalyzer.wifi.accesspoint.ConnectionViewType
 import com.vrem.wifianalyzer.wifi.band.WiFiBand
-import com.vrem.wifianalyzer.wifi.graphutils.GraphLegend
 import com.vrem.wifianalyzer.wifi.model.GroupBy
 import com.vrem.wifianalyzer.wifi.model.Security
 import com.vrem.wifianalyzer.wifi.model.SortBy
@@ -43,8 +43,11 @@ import kotlin.enums.EnumEntries
 @OpenClass
 class Settings(
     private val repository: Repository,
+    private val appLocales: AppLocales,
 ) {
-    fun initializeDefaultValues(): Unit = repository.initializeDefaultValues()
+    fun initializeDefaultValues() {
+        repository.initializeDefaultValues()
+    }
 
     fun registerOnSharedPreferenceChangeListener(
         onSharedPreferenceChangeListener: OnSharedPreferenceChangeListener,
@@ -69,11 +72,27 @@ class Settings(
 
     fun countryCode(): String = repository.string(R.string.country_code_key, defaultCountryCode())
 
-    fun languageLocale(): Locale {
-        val defaultLanguageTag = defaultLanguageTag()
-        val languageTag = repository.string(R.string.language_key, defaultLanguageTag)
-        return findByLanguageTag(languageTag)
+    fun defaultCountryCode(): String = appLocales.systemLocale()?.country.orEmpty()
+
+    fun languageLocale(): Locale = appLocales.applicationLocale() ?: Locale.getDefault()
+
+    fun languageTag(): String =
+        appLocales.applicationLocale()?.let { findSupportedLanguage(it)?.toLanguageTag() }.orEmpty()
+
+    fun saveLanguageTag(languageTag: String): Unit = appLocales.save(languageTag)
+
+    fun migrateLanguage() {
+        val legacyLanguageTag = repository.string(R.string.language_key, String.EMPTY)
+        if (legacyLanguageTag.isEmpty()) {
+            return
+        }
+        if (appLocales.applicationLocale() == null && legacyLanguageTag != systemLegacyLanguageTag()) {
+            findByLegacyLanguageTag(legacyLanguageTag)?.let { saveLanguageTag(it.toLanguageTag()) }
+        }
+        repository.remove(R.string.language_key)
     }
+
+    private fun systemLegacyLanguageTag(): String = appLocales.systemLocale()?.let { toLegacyLanguageTag(it) }.orEmpty()
 
     fun sortBy(): SortBy = settingsFind(SortBy.entries, R.string.sort_by_key, SortBy.STRENGTH)
 
@@ -84,12 +103,6 @@ class Settings(
 
     fun connectionViewType(): ConnectionViewType =
         settingsFind(ConnectionViewType.entries, R.string.connection_view_key, ConnectionViewType.COMPACT)
-
-    fun channelGraphLegend(): GraphLegend =
-        settingsFind(GraphLegend.entries, R.string.channel_graph_legend_key, GraphLegend.HIDE)
-
-    fun timeGraphLegend(): GraphLegend =
-        settingsFind(GraphLegend.entries, R.string.time_graph_legend_key, GraphLegend.LEFT)
 
     fun wiFiBand(): WiFiBand = settingsFind(WiFiBand.entries, R.string.wifi_band_key, WiFiBand.GHZ2)
 

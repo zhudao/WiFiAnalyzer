@@ -20,19 +20,14 @@ package com.vrem.util
 import android.content.Context
 import android.content.pm.PackageInfo
 import android.content.pm.PackageManager.PackageInfoFlags
-import android.content.res.Configuration
-import android.content.res.Resources
 import android.net.wifi.ScanResult
 import android.os.Build
 import androidx.annotation.RequiresApi
-import java.util.Locale
+import androidx.core.content.pm.PackageInfoCompat
+import java.security.MessageDigest
 
-fun Context.createContext(newLocale: Locale): Context {
-    val resources: Resources = resources
-    val configuration: Configuration = resources.configuration
-    configuration.setLocale(newLocale)
-    return createConfigurationContext(configuration)
-}
+private const val SIGNATURE_ALGORITHM = "SHA-256"
+private const val SIGNATURE_BYTES = 3
 
 fun Context.packageInfo(): PackageInfo =
     if (buildMinVersionT()) {
@@ -46,6 +41,17 @@ private fun Context.packageInfoAndroidT(): PackageInfo =
     packageManager.getPackageInfo(packageName, PackageInfoFlags.of(0))
 
 private fun Context.packageInfoLegacy(): PackageInfo = packageManager.getPackageInfo(packageName, 0)
+
+fun Context.signature(): String =
+    runCatching {
+        PackageInfoCompat
+            .getSignatures(packageManager, packageName)
+            .first()
+            .toByteArray()
+            .let { MessageDigest.getInstance(SIGNATURE_ALGORITHM).digest(it) }
+            .take(SIGNATURE_BYTES)
+            .joinToString(String.EMPTY) { "%02x".format(it) }
+    }.getOrDefault(String.EMPTY)
 
 fun ScanResult.ssid(): String =
     if (buildMinVersionT()) {

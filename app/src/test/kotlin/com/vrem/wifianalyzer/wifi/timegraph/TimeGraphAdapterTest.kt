@@ -27,27 +27,23 @@ import org.junit.runner.RunWith
 import org.robolectric.annotation.Config
 
 @RunWith(AndroidJUnit4::class)
-@Config(sdk = [Build.VERSION_CODES.BAKLAVA])
+@Config(sdk = [Build.VERSION_CODES.CINNAMON_BUN])
 class TimeGraphAdapterTest {
     @Test
-    fun graphViewNotifiers() {
-        // setup
-        RobolectricUtil.INSTANCE.activity
+    fun graphNotifiers() {
+        // Arrange
+        RobolectricUtil.INSTANCE.mainActivity
         val fixture = TimeGraphAdapter()
-        // execute
-        val graphViewNotifiers = fixture.graphViewNotifiers()
-        // validate
-        assertThat(graphViewNotifiers).hasSize(WiFiBand.entries.size)
+        // Act & Assert
+        assertThat(fixture.graphNotifiers).hasSize(WiFiBand.entries.size)
     }
 
     @Test
-    fun graphViews() {
-        // setup
-        RobolectricUtil.INSTANCE.activity
+    fun graphs() {
+        // Arrange
+        RobolectricUtil.INSTANCE.mainActivity
         val fixture = TimeGraphAdapter()
-        // execute
-        val graphViews = fixture.graphViews()
-        // validate
-        assertThat(graphViews).hasSize(WiFiBand.entries.size)
+        // Act & Assert
+        assertThat(fixture.graphs()).hasSize(WiFiBand.entries.size)
     }
 }

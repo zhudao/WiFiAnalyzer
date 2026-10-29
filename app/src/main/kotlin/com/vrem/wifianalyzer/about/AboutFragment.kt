@@ -18,9 +18,7 @@
 package com.vrem.wifianalyzer.about
 
 import android.app.Activity
-import android.app.AlertDialog
 import android.content.Intent
-import android.content.pm.PackageInfo
 import android.os.Build
 import android.os.Bundle
 import android.view.LayoutInflater
@@ -28,6 +26,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
 import android.widget.Toast
+import androidx.appcompat.app.AlertDialog
 import androidx.core.content.pm.PackageInfoCompat
 import androidx.core.net.toUri
 import androidx.fragment.app.Fragment
@@ -35,6 +34,7 @@ import androidx.fragment.app.FragmentActivity
 import com.vrem.util.EMPTY
 import com.vrem.util.packageInfo
 import com.vrem.util.readFile
+import com.vrem.util.signature
 import com.vrem.wifianalyzer.MainContext
 import com.vrem.wifianalyzer.R
 import com.vrem.wifianalyzer.databinding.AboutContentBinding
@@ -48,8 +48,8 @@ class AboutFragment : Fragment() {
         container: ViewGroup?,
         savedInstanceState: Bundle?,
     ): View {
-        val binding: AboutContentBinding = AboutContentBinding.inflate(inflater, container, false)
-        val activity: FragmentActivity = requireActivity()
+        val binding = AboutContentBinding.inflate(inflater, container, false)
+        val activity = requireActivity()
         setTexts(binding, activity)
         setOnClicks(binding, activity)
         wiFiState(binding)
@@ -111,7 +111,7 @@ class AboutFragment : Fragment() {
             AlertDialogClickListener(activity, R.string.about_contributor_title, R.raw.contributors, false)
         binding.contributors.setOnClickListener(contributors)
         val al = AlertDialogClickListener(activity, R.string.al, R.raw.al)
-        binding.graphViewLicense.setOnClickListener(al)
+        binding.graphLicense.setOnClickListener(al)
         binding.materialDesignIconsLicense.setOnClickListener(al)
         binding.writeReview.setOnClickListener(WriteReviewClickListener(activity))
     }
@@ -124,12 +124,13 @@ class AboutFragment : Fragment() {
         return applicationVersion(activity) +
             ifElse(configuration.sizeAvailable, "S") +
             ifElse(configuration.largeScreen, "L") +
-            " (" + Build.VERSION.RELEASE + "-" + Build.VERSION.SDK_INT + ")"
+            " (" + Build.VERSION.RELEASE + "-" + Build.VERSION.SDK_INT + ") " +
+            activity.signature()
     }
 
     private fun applicationVersion(activity: FragmentActivity): String =
         runCatching {
-            val packageInfo: PackageInfo = activity.packageInfo()
+            val packageInfo = activity.packageInfo()
             packageInfo.versionName + " - " + PackageInfoCompat.getLongVersionCode(packageInfo)
         }.getOrDefault(String.EMPTY)
 
@@ -165,7 +166,7 @@ class AboutFragment : Fragment() {
                         .create()
                 alertDialog.show()
                 if (isSmallFont) {
-                    alertDialog.findViewById<TextView>(android.R.id.message).textSize = 8f
+                    alertDialog.findViewById<TextView>(android.R.id.message)!!.textSize = 8f
                 }
             }
         }

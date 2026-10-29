@@ -19,8 +19,8 @@ package com.vrem.wifianalyzer.wifi.filter.adapter
 
 import android.os.Build
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import com.vrem.wifianalyzer.MainContextHelper
 import com.vrem.wifianalyzer.RobolectricUtil
+import com.vrem.wifianalyzer.settings.Settings
 import com.vrem.wifianalyzer.wifi.band.WiFiBand
 import com.vrem.wifianalyzer.wifi.model.Security
 import com.vrem.wifianalyzer.wifi.model.Strength
@@ -29,22 +29,22 @@ import org.junit.After
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.mockito.kotlin.mock
 import org.mockito.kotlin.times
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.verifyNoMoreInteractions
 import org.mockito.kotlin.whenever
 import org.robolectric.annotation.Config
-import java.io.Serializable
 
 @RunWith(AndroidJUnit4::class)
-@Config(sdk = [Build.VERSION_CODES.BAKLAVA])
+@Config(sdk = [Build.VERSION_CODES.CINNAMON_BUN])
 class FiltersAdapterTest {
-    private val mainActivity = RobolectricUtil.INSTANCE.activity
+    private val mainActivity = RobolectricUtil.INSTANCE.mainActivity
     private val ssids = setOf<String>()
-    private val wiFiBands: Set<WiFiBand> = WiFiBand.entries.toSet()
-    private val strengths: Set<Strength> = Strength.entries.toSet()
-    private val securities: Set<Security> = Security.entries.toSet()
-    private val settings = MainContextHelper.INSTANCE.settings
+    private val wiFiBands = WiFiBand.entries.toSet()
+    private val strengths = Strength.entries.toSet()
+    private val securities = Security.entries.toSet()
+    private val settings: Settings = mock()
 
     private lateinit var fixture: FiltersAdapter
 
@@ -55,7 +55,7 @@ class FiltersAdapterTest {
         whenever(settings.findStrengths()).thenReturn(strengths)
         whenever(settings.findSecurities()).thenReturn(securities)
 
-        fixture = FiltersAdapter(settings)
+        fixture = FiltersAdapter(settings, mainActivity)
 
         verify(settings).findSSIDs()
         verify(settings).findWiFiBands()
@@ -66,52 +66,51 @@ class FiltersAdapterTest {
     @After
     fun tearDown() {
         verifyNoMoreInteractions(settings)
-        MainContextHelper.INSTANCE.restore()
     }
 
     @Test
     fun isActive() {
-        // execute & validate
+        // Act & Assert
         assertThat(fixture.isActive()).isFalse
     }
 
     @Test
     fun getFilterAdapters() {
-        // execute
-        val actual: List<BasicFilterAdapter<out Serializable?>?> = fixture.filterAdapters(true)
-        // validate
+        // Act
+        val actual = fixture.filterAdapters(true)
+        // Assert
         assertThat(actual).hasSize(4)
     }
 
     @Test
     fun getFilterAdaptersWithNptAccessPoints() {
-        // execute
-        val actual: List<BasicFilterAdapter<out Serializable?>?> = fixture.filterAdapters(false)
-        // validate
+        // Act
+        val actual = fixture.filterAdapters(false)
+        // Assert
         assertThat(actual).hasSize(3)
     }
 
     @Test
     fun isActiveWhenStrengthFilterIsChanged() {
-        // setup
+        // Arrange
         fixture.strengthAdapter().toggle(Strength.THREE)
-        // execute & validate
+        // Act & Assert
         assertThat(fixture.isActive()).isTrue
     }
 
     @Test
     fun isActiveWhenWiFiBandFilterIsChanged() {
-        // setup
+        // Arrange
         fixture.wiFiBandAdapter().toggle(WiFiBand.GHZ2)
-        // execute & validate
+        // Act & Assert
         assertThat(fixture.isActive()).isTrue
     }
 
     @Test
     fun reset() {
-        // execute
+        // Act
         fixture.reset()
-        // validate
+        // Assert
         verify(settings).saveSSIDs(ssids)
         verify(settings).saveWiFiBands(wiFiBands)
         verify(settings).saveStrengths(strengths)
@@ -120,9 +119,9 @@ class FiltersAdapterTest {
 
     @Test
     fun reload() {
-        // execute
+        // Act
         fixture.reload()
-        // validate
+        // Assert
         verify(settings, times(2)).findSSIDs()
         verify(settings, times(2)).findWiFiBands()
         verify(settings, times(2)).findStrengths()
@@ -131,9 +130,9 @@ class FiltersAdapterTest {
 
     @Test
     fun save() {
-        // execute
+        // Act
         fixture.save()
-        // validate
+        // Assert
         verify(settings).saveSSIDs(ssids)
         verify(settings).saveWiFiBands(wiFiBands)
         verify(settings).saveStrengths(strengths)

@@ -35,7 +35,7 @@ internal val calculateCenterUsingCenter0: CalculateCenter = { _, center0, _ -> c
 internal val calculateCenterUsingCenter1: CalculateCenter = { _, _, center1 -> center1 }
 
 enum class WiFiWidth(
-    @StringRes val textResource: Int,
+    @get:StringRes @param:StringRes val textResource: Int,
     val channelWidth: Int,
     val frequencyWidth: Int,
     val guardBand: Int,
@@ -57,7 +57,7 @@ enum class WiFiWidth(
     MHZ_320(R.string.wifi_width_320mhz, CHANNEL_WIDTH_320MHZ, 320, 3, calculateCenterUsingCenter1, 32),
     ;
 
-    val frequencyWidthHalf: Int = frequencyWidth / 2
+    val frequencyWidthHalf = frequencyWidth / 2
 
     companion object {
         fun findOne(channelWidth: Int): WiFiWidth =

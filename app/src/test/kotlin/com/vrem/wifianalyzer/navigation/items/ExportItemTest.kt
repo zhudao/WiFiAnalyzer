@@ -22,18 +22,18 @@ import android.content.Intent
 import android.os.Build
 import android.view.View
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import com.vrem.wifianalyzer.MainContextHelper
 import com.vrem.wifianalyzer.RobolectricUtil
 import com.vrem.wifianalyzer.export.Export
 import com.vrem.wifianalyzer.navigation.NavigationMenu
 import com.vrem.wifianalyzer.wifi.model.WiFiConnection
 import com.vrem.wifianalyzer.wifi.model.WiFiData
 import com.vrem.wifianalyzer.wifi.model.WiFiDetail
+import com.vrem.wifianalyzer.wifi.scanner.ScannerService
+import kotlinx.coroutines.flow.MutableStateFlow
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.After
 import org.junit.Test
 import org.junit.runner.RunWith
-import org.mockito.kotlin.any
 import org.mockito.kotlin.doReturn
 import org.mockito.kotlin.doThrow
 import org.mockito.kotlin.mock
@@ -45,46 +45,45 @@ import org.robolectric.annotation.Config
 import org.robolectric.shadows.ShadowToast
 
 @RunWith(AndroidJUnit4::class)
-@Config(sdk = [Build.VERSION_CODES.BAKLAVA])
+@Config(sdk = [Build.VERSION_CODES.CINNAMON_BUN])
 class ExportItemTest {
-    private val mainActivity = RobolectricUtil.INSTANCE.activity
+    private val mainActivity = RobolectricUtil.INSTANCE.mainActivity
     private val export: Export = mock()
     private val intent: Intent = mock()
     private val componentName: ComponentName = mock()
-    private val scanner = MainContextHelper.INSTANCE.scannerService
+    private val scanner: ScannerService = mock()
 
-    private val fixture = ExportItem(export)
+    private val fixture = ExportItem(export) { scanner }
 
     @After
     fun tearDown() {
         verifyNoMoreInteractions(export)
         verifyNoMoreInteractions(componentName)
         verifyNoMoreInteractions(scanner)
-        MainContextHelper.INSTANCE.restore()
     }
 
     @Test
     fun registered() {
-        // execute & validate
+        // Act & Assert
         assertThat(fixture.registered).isFalse
     }
 
     @Test
     fun visibility() {
-        // execute & validate
+        // Act & Assert
         assertThat(fixture.visibility).isEqualTo(View.GONE)
     }
 
     @Test
     fun activate() {
-        // setup
-        val wiFiData: WiFiData = withWiFiData()
-        doReturn(wiFiData).whenever(scanner).wiFiData()
+        // Arrange
+        val wiFiData = withWiFiData()
+        doReturn(MutableStateFlow(wiFiData)).whenever(scanner).wiFiData()
         doReturn(intent).whenever(export).export(mainActivity, wiFiData.wiFiDetails)
-        doReturn(componentName).whenever(intent).resolveActivity(any())
-        // execute
+        doReturn(componentName).whenever(intent).resolveActivity(mainActivity.packageManager)
+        // Act
         fixture.activate(mainActivity, NavigationMenu.EXPORT)
-        // validate
+        // Assert
         verify(scanner).wiFiData()
         verify(export).export(mainActivity, wiFiData.wiFiDetails)
         verify(intent).resolveActivity(mainActivity.packageManager)
@@ -92,49 +91,50 @@ class ExportItemTest {
 
     @Test
     fun activateWithNoWiFiData() {
-        // setup
+        // Arrange
         val wiFiData = WiFiData(listOf(), WiFiConnection.EMPTY)
-        doReturn(wiFiData).whenever(scanner).wiFiData()
-        // execute
+        doReturn(MutableStateFlow(wiFiData)).whenever(scanner).wiFiData()
+        // Act
         fixture.activate(mainActivity, NavigationMenu.EXPORT)
-        // validate
-        verify(scanner).wiFiData()
+        // Assert
         assertThat(ShadowToast.getTextOfLatestToast()).isEqualTo("No Data")
+        verify(scanner).wiFiData()
     }
 
     @Test
     fun activateWithNoExportAvailable() {
-        // setup
-        val wiFiData: WiFiData = withWiFiData()
-        doReturn(wiFiData).whenever(scanner).wiFiData()
+        // Arrange
+        val wiFiData = withWiFiData()
+        doReturn(MutableStateFlow(wiFiData)).whenever(scanner).wiFiData()
         doReturn(intent).whenever(export).export(mainActivity, wiFiData.wiFiDetails)
-        doReturn(null).whenever(intent).resolveActivity(any())
-        // execute
+        doReturn(null).whenever(intent).resolveActivity(mainActivity.packageManager)
+        // Act
         fixture.activate(mainActivity, NavigationMenu.EXPORT)
-        // validate
+        // Assert
+        assertThat(ShadowToast.getTextOfLatestToast()).isEqualTo("Export not available")
         verify(scanner).wiFiData()
         verify(export).export(mainActivity, wiFiData.wiFiDetails)
         verify(intent).resolveActivity(mainActivity.packageManager)
-        assertThat(ShadowToast.getTextOfLatestToast()).isEqualTo("Export not available")
     }
 
     @Test
     fun activateThrowsException() {
-        // setup
+        // Arrange
         val activity = spy(mainActivity)
-        val wiFiData: WiFiData = withWiFiData()
+        val packageManager = activity.packageManager
+        val wiFiData = withWiFiData()
         val expected = "error"
-        doReturn(wiFiData).whenever(scanner).wiFiData()
+        doReturn(MutableStateFlow(wiFiData)).whenever(scanner).wiFiData()
         doReturn(intent).whenever(export).export(activity, wiFiData.wiFiDetails)
-        doReturn(componentName).whenever(intent).resolveActivity(any())
+        doReturn(componentName).whenever(intent).resolveActivity(packageManager)
         doThrow(RuntimeException(expected)).whenever(activity).startActivity(intent)
-        // execute
+        // Act
         fixture.activate(activity, NavigationMenu.EXPORT)
-        // validate
+        // Assert
+        assertThat(ShadowToast.getTextOfLatestToast()).isEqualTo(expected)
         verify(scanner).wiFiData()
         verify(export).export(activity, wiFiData.wiFiDetails)
         verify(intent).resolveActivity(activity.packageManager)
-        assertThat(ShadowToast.getTextOfLatestToast()).isEqualTo(expected)
     }
 
     private fun withWiFiData(): WiFiData = WiFiData(listOf(WiFiDetail.EMPTY), WiFiConnection.EMPTY)

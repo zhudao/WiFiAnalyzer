@@ -18,7 +18,8 @@
 package com.vrem.wifianalyzer.wifi.accesspoint
 
 import android.widget.ExpandableListView
-import com.vrem.wifianalyzer.MainContextHelper.INSTANCE
+import com.vrem.wifianalyzer.Configuration
+import com.vrem.wifianalyzer.settings.Settings
 import com.vrem.wifianalyzer.wifi.band.WiFiBand
 import com.vrem.wifianalyzer.wifi.model.GroupBy
 import com.vrem.wifianalyzer.wifi.model.Security
@@ -29,10 +30,12 @@ import com.vrem.wifianalyzer.wifi.model.WiFiDetail
 import com.vrem.wifianalyzer.wifi.model.WiFiIdentifier
 import com.vrem.wifianalyzer.wifi.model.WiFiSignal
 import com.vrem.wifianalyzer.wifi.model.WiFiWidth
+import com.vrem.wifianalyzer.wifi.predicate.Predicate
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.After
 import org.junit.Test
 import org.mockito.kotlin.any
+import org.mockito.kotlin.doReturn
 import org.mockito.kotlin.eq
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.verify
@@ -43,9 +46,9 @@ class AccessPointsAdapterDataTest {
     private val wiFiData: WiFiData = mock()
     private val accessPointsAdapterGroup: AccessPointsAdapterGroup = mock()
     private val expandableListView: ExpandableListView = mock()
-    private val settings = INSTANCE.settings
-    private val configuration = INSTANCE.configuration
-    private val fixture = AccessPointsAdapterData(accessPointsAdapterGroup)
+    private val settings: Settings = mock()
+    private val configuration: Configuration = mock()
+    private val fixture = AccessPointsAdapterData(accessPointsAdapterGroup, settings, configuration)
 
     @After
     fun tearDown() {
@@ -53,7 +56,6 @@ class AccessPointsAdapterDataTest {
         verifyNoMoreInteractions(accessPointsAdapterGroup)
         verifyNoMoreInteractions(expandableListView)
         verifyNoMoreInteractions(configuration)
-        INSTANCE.restore()
     }
 
     @Test
@@ -68,14 +70,14 @@ class AccessPointsAdapterDataTest {
 
     @Test
     fun afterUpdateWithGroupByChannel() {
-        // setup
+        // Arrange
         val wiFiDetails = withWiFiDetails()
         withSettings()
-        whenever(wiFiData.wiFiDetails(any(), eq(SortBy.SSID), eq(GroupBy.CHANNEL))).thenReturn(wiFiDetails)
-        // execute
+        doReturn(wiFiDetails).whenever(wiFiData).wiFiDetails(any<Predicate>(), eq(SortBy.SSID), eq(GroupBy.CHANNEL))
+        // Act
         fixture.update(wiFiData, expandableListView)
-        // validate
-        verify(wiFiData).wiFiDetails(any(), eq(SortBy.SSID), eq(GroupBy.CHANNEL))
+        // Assert
+        verify(wiFiData).wiFiDetails(any<Predicate>(), eq(SortBy.SSID), eq(GroupBy.CHANNEL))
         verify(accessPointsAdapterGroup).update(wiFiDetails, expandableListView)
         verifySettings()
         assertThat(fixture.parentsCount()).isEqualTo(wiFiDetails.size)
@@ -90,23 +92,23 @@ class AccessPointsAdapterDataTest {
 
     @Test
     fun onGroupCollapsed() {
-        // setup
+        // Arrange
         val index = 11
         val wiFiDetails: List<WiFiDetail> = fixture.wiFiDetails
-        // execute
+        // Act
         fixture.onGroupCollapsed(index)
-        // validate
+        // Assert
         verify(accessPointsAdapterGroup).onGroupCollapsed(wiFiDetails, index)
     }
 
     @Test
     fun onGroupExpanded() {
-        // setup
+        // Arrange
         val index = 22
         val wiFiDetails: List<WiFiDetail> = fixture.wiFiDetails
-        // execute
+        // Act
         fixture.onGroupExpanded(index)
-        // validate
+        // Assert
         verify(accessPointsAdapterGroup).onGroupExpanded(wiFiDetails, index)
     }
 

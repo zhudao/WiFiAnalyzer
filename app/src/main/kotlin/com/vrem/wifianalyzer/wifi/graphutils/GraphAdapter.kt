@@ -17,16 +17,15 @@
  */
 package com.vrem.wifianalyzer.wifi.graphutils
 
-import com.jjoe64.graphview.GraphView
+import android.view.View
 import com.vrem.wifianalyzer.wifi.model.WiFiData
-import com.vrem.wifianalyzer.wifi.scanner.UpdateNotifier
 
 open class GraphAdapter(
-    private val graphViewNotifiers: List<GraphViewNotifier>,
-) : UpdateNotifier {
-    fun graphViews(): List<GraphView> = graphViewNotifiers.map { it.graphView() }
+    internal val graphNotifiers: List<GraphNotifier>,
+) {
+    fun graphs(): List<View> = graphNotifiers.map { it.graph() }
 
-    override fun update(wiFiData: WiFiData) = graphViewNotifiers.forEach { it.update(wiFiData) }
+    fun update(wiFiData: WiFiData) = graphNotifiers.forEach { it.update(wiFiData) }
 
-    fun graphViewNotifiers(): List<GraphViewNotifier> = graphViewNotifiers
+    fun destroy() = graphNotifiers.forEach { it.destroy() }
 }

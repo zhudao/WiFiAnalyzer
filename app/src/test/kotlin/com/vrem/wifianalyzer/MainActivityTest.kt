@@ -19,14 +19,17 @@ package com.vrem.wifianalyzer
 
 import android.content.SharedPreferences
 import android.os.Build
+import android.os.Looper
 import android.view.Menu
 import android.view.MenuItem
+import android.view.View
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.google.android.material.navigation.NavigationView
 import com.vrem.util.EMPTY
 import com.vrem.wifianalyzer.navigation.NavigationMenu
 import com.vrem.wifianalyzer.navigation.NavigationMenuController
 import com.vrem.wifianalyzer.navigation.options.OptionMenu
+import com.vrem.wifianalyzer.wifi.accesspoint.ConnectionView
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.After
 import org.junit.Test
@@ -36,17 +39,18 @@ import org.mockito.kotlin.never
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
 import org.robolectric.Robolectric
+import org.robolectric.Shadows
 import org.robolectric.annotation.Config
 
 @RunWith(AndroidJUnit4::class)
-@Config(sdk = [Build.VERSION_CODES.BAKLAVA])
+@Config(sdk = [Build.VERSION_CODES.CINNAMON_BUN])
 class MainActivityTest {
-    private val fixture =
+    private val controller =
         Robolectric
             .buildActivity(MainActivity::class.java)
             .create()
             .resume()
-            .get()
+    private val fixture = controller.get()
 
     @After
     fun tearDown() {
@@ -59,73 +63,107 @@ class MainActivityTest {
     }
 
     @Test
+    fun wiFiStatusVisibilityAppliesToConnectionAndWarningContainer() {
+        // Act
+        fixture.wiFiStatusVisibility(View.GONE)
+        // Assert
+        assertThat(fixture.findViewById<View>(R.id.main_connection).visibility).isEqualTo(View.GONE)
+        assertThat(fixture.findViewById<View>(R.id.main_warning_container).visibility).isEqualTo(View.GONE)
+    }
+
+    @Test
+    fun collectionWillUpdateConnectionView() {
+        // Arrange
+        val scannerService = MainContext.INSTANCE.scannerService
+        val connectionView: ConnectionView = mock()
+        fixture.connectionView = connectionView
+        // Act
+        controller.stop().start()
+        Shadows.shadowOf(Looper.getMainLooper()).idle()
+        // Assert
+        verify(connectionView).update(scannerService.wiFiData().value)
+    }
+
+    @Test
+    fun onPermissionResultWithPermissionGrantedWillNotFinishActivity() {
+        // Act
+        fixture.onPermissionResult(true)
+        // Assert
+        assertThat(fixture.isFinishing).isFalse
+    }
+
+    @Test
+    fun onPermissionResultWithPermissionDeniedWillFinishActivity() {
+        // Act
+        fixture.onPermissionResult(false)
+        // Assert
+        assertThat(fixture.isFinishing).isTrue
+    }
+
+    @Test
     fun onPauseWillPauseScanner() {
-        // setup
+        // Arrange
         val scannerService = MainContextHelper.INSTANCE.scannerService
-        // execute
+        // Act
         fixture.onPause()
-        // validate
+        // Assert
         verify(scannerService).pause()
-        verify(scannerService).unregister(fixture.connectionView)
     }
 
     @Test
     fun onResumeWithPermissionGrantedAndLocationDisabledWillResumeScanner() {
-        // setup
+        // Arrange
         val permissionService = MainContextHelper.INSTANCE.permissionService
         val scannerService = MainContextHelper.INSTANCE.scannerService
         whenever(permissionService.permissionGranted()).thenReturn(true)
         whenever(permissionService.locationEnabled()).thenReturn(false)
-        // execute
+        // Act
         fixture.onResume()
-        // validate
+        // Assert
         verify(permissionService).permissionGranted()
         verify(permissionService).locationEnabled()
         verify(scannerService).resume()
-        verify(scannerService).register(fixture.connectionView)
     }
 
     @Test
     fun onResumeWithPermissionGrantedAndLocationEnabledWillResumeScanner() {
-        // setup
+        // Arrange
         val permissionService = MainContextHelper.INSTANCE.permissionService
         val scannerService = MainContextHelper.INSTANCE.scannerService
         whenever(permissionService.permissionGranted()).thenReturn(true)
         whenever(permissionService.locationEnabled()).thenReturn(true)
-        // execute
+        // Act
         fixture.onResume()
-        // validate
+        // Assert
         verify(permissionService).permissionGranted()
         verify(permissionService).locationEnabled()
         verify(scannerService).resume()
-        verify(scannerService).register(fixture.connectionView)
     }
 
     @Test
     fun onResumeWithPermissionNotGrantedWillPauseScanner() {
-        // setup
+        // Arrange
         val permissionService = MainContextHelper.INSTANCE.permissionService
         val scannerService = MainContextHelper.INSTANCE.scannerService
         whenever(permissionService.permissionGranted()).thenReturn(false)
-        // execute
+        // Act
         fixture.onResume()
-        // validate
+        // Assert
         verify(scannerService).pause()
-        verify(scannerService).register(fixture.connectionView)
         verify(permissionService).permissionGranted()
         verify(permissionService, never()).locationEnabled()
     }
 
     @Test
     fun onStartWithPermissionGrantedAndLocationDisabledWillResumeScanner() {
-        // setup
+        // Arrange
         val permissionService = MainContextHelper.INSTANCE.permissionService
         val scannerService = MainContextHelper.INSTANCE.scannerService
         whenever(permissionService.permissionGranted()).thenReturn(true)
         whenever(permissionService.locationEnabled()).thenReturn(false)
-        // execute
+        // Act
         fixture.onStart()
-        // validate
+        // Assert
         verify(scannerService).resume()
         verify(permissionService).permissionGranted()
         verify(permissionService).locationEnabled()
@@ -133,14 +171,14 @@ class MainActivityTest {
 
     @Test
     fun onStartWithPermissionGrantedAndLocationEnabledWillResumeScanner() {
-        // setup
+        // Arrange
         val permissionService = MainContextHelper.INSTANCE.permissionService
         val scannerService = MainContextHelper.INSTANCE.scannerService
         whenever(permissionService.permissionGranted()).thenReturn(true)
         whenever(permissionService.locationEnabled()).thenReturn(true)
-        // execute
+        // Act
         fixture.onStart()
-        // validate
+        // Assert
         verify(scannerService).resume()
         verify(permissionService).permissionGranted()
         verify(permissionService).locationEnabled()
@@ -148,12 +186,12 @@ class MainActivityTest {
 
     @Test
     fun onStartWithPermissionNotGrantedWillCheckPermission() {
-        // setup
+        // Arrange
         val permissionService = MainContextHelper.INSTANCE.permissionService
         whenever(permissionService.permissionGranted()).thenReturn(false)
-        // execute
+        // Act
         fixture.onStart()
-        // validate
+        // Assert
         verify(permissionService).check()
         verify(permissionService).permissionGranted()
         verify(permissionService, never()).locationEnabled()
@@ -161,144 +199,144 @@ class MainActivityTest {
 
     @Test
     fun onCreateOptionsMenu() {
-        // setup
+        // Arrange
         val menu: Menu = mock()
         val optionMenu: OptionMenu = mock()
         fixture.optionMenu = optionMenu
-        // execute
+        // Act
         val actual = fixture.onCreateOptionsMenu(menu)
-        // validate
+        // Assert
         assertThat(actual).isTrue
         verify(optionMenu).create(fixture, menu)
     }
 
     @Test
     fun onOptionsItemSelected() {
-        // setup
+        // Arrange
         val menuItem: MenuItem = mock()
         val optionMenu: OptionMenu = mock()
         fixture.optionMenu = optionMenu
-        // execute
+        // Act
         val actual = fixture.onOptionsItemSelected(menuItem)
-        // validate
+        // Assert
         assertThat(actual).isTrue
         verify(optionMenu).select(menuItem)
     }
 
     @Test
     fun onConfigurationChanged() {
-        // setup
+        // Arrange
         val configuration = fixture.resources.configuration
         val drawerNavigation: DrawerNavigation = mock()
         fixture.drawerNavigation = drawerNavigation
-        // execute
+        // Act
         fixture.onConfigurationChanged(configuration)
-        // validate
+        // Assert
         verify(drawerNavigation).onConfigurationChanged(configuration)
     }
 
     @Test
     fun onPostCreate() {
-        // setup
+        // Arrange
         val drawerNavigation: DrawerNavigation = mock()
         fixture.drawerNavigation = drawerNavigation
-        // execute
+        // Act
         fixture.onPostCreate(null)
-        // validate
+        // Assert
         verify(drawerNavigation).syncState()
     }
 
     @Test
     fun onStop() {
-        // setup
+        // Arrange
         val scannerService = MainContextHelper.INSTANCE.scannerService
-        // execute
+        // Act
         fixture.onStop()
-        // validate
+        // Assert
         verify(scannerService).stop()
     }
 
     @Test
     fun updateShouldUpdateScanner() {
-        // setup
+        // Arrange
         val scannerService = MainContextHelper.INSTANCE.scannerService
-        // execute
+        // Act
         fixture.update()
-        // validate
+        // Assert
         verify(scannerService).update()
     }
 
     @Test
     fun onSharedPreferenceChangedShouldUpdateScanner() {
-        // setup
+        // Arrange
         val scannerService = MainContextHelper.INSTANCE.scannerService
         val sharedPreferences: SharedPreferences = mock()
-        // execute
+        // Act
         fixture.onSharedPreferenceChanged(sharedPreferences, String.EMPTY)
-        // validate
+        // Assert
         verify(scannerService).update()
     }
 
     @Test
     fun optionMenu() {
-        // execute
+        // Act
         val actual = fixture.optionMenu
-        // validate
+        // Assert
         assertThat(actual).isNotNull()
     }
 
     @Test
     fun getCurrentMenuItem() {
-        // setup
+        // Arrange
         val menuItem: MenuItem = mock()
         val navigationMenuController: NavigationMenuController = mock()
         whenever(navigationMenuController.currentMenuItem()).thenReturn(menuItem)
         fixture.navigationMenuController = navigationMenuController
-        // execute
+        // Act
         val actual = fixture.currentMenuItem()
-        // validate
+        // Assert
         assertThat(actual).isEqualTo(menuItem)
         verify(navigationMenuController).currentMenuItem()
     }
 
     @Test
     fun getCurrentNavigationMenu() {
-        // setup
+        // Arrange
         val navigationMenu = NavigationMenu.CHANNEL_GRAPH
         val navigationMenuController: NavigationMenuController = mock()
         whenever(navigationMenuController.currentNavigationMenu()).thenReturn(navigationMenu)
         fixture.navigationMenuController = navigationMenuController
-        // execute
+        // Act
         val actual = fixture.currentNavigationMenu()
-        // validate
+        // Assert
         assertThat(actual).isEqualTo(navigationMenu)
         verify(navigationMenuController).currentNavigationMenu()
     }
 
     @Test
     fun setCurrentNavigationMenu() {
-        // setup
+        // Arrange
         val settings = MainContextHelper.INSTANCE.settings
         val navigationMenu = NavigationMenu.CHANNEL_GRAPH
         val navigationMenuController: NavigationMenuController = mock()
         fixture.navigationMenuController = navigationMenuController
-        // execute
+        // Act
         fixture.currentNavigationMenu(navigationMenu)
-        // validate
+        // Assert
         verify(navigationMenuController).currentNavigationMenu(navigationMenu)
         verify(settings).saveSelectedMenu(navigationMenu)
     }
 
     @Test
     fun getNavigationView() {
-        // setup
+        // Arrange
         val navigationMenuController: NavigationMenuController = mock()
         val navigationView: NavigationView = mock()
         whenever(navigationMenuController.drawerNavigationView).thenReturn(navigationView)
         fixture.navigationMenuController = navigationMenuController
-        // execute
+        // Act
         val actual = fixture.navigationView()
-        // validate
+        // Assert
         assertThat(actual).isEqualTo(navigationView)
         verify(navigationMenuController).drawerNavigationView
     }

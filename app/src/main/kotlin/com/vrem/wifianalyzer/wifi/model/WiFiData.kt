@@ -19,12 +19,14 @@ package com.vrem.wifianalyzer.wifi.model
 
 import com.vrem.annotation.OpenClass
 import com.vrem.wifianalyzer.MainContext
+import com.vrem.wifianalyzer.vendor.model.VendorService
 import com.vrem.wifianalyzer.wifi.predicate.Predicate
 
 @OpenClass
 class WiFiData(
     val wiFiDetails: List<WiFiDetail>,
     val wiFiConnection: WiFiConnection,
+    private val vendorService: () -> VendorService = MainContext.INSTANCE::vendorService,
 ) {
     fun connection(): WiFiDetail = wiFiDetails.firstOrNull { connected(it) }?.let { copy(it) } ?: WiFiDetail.EMPTY
 
@@ -38,7 +40,7 @@ class WiFiData(
         sortBy: SortBy,
         groupBy: GroupBy,
     ): List<WiFiDetail> {
-        val connection: WiFiDetail = connection()
+        val connection = connection()
         return wiFiDetails
             .filter { predicate(it) }
             .map { transform(it, connection) }
@@ -65,7 +67,7 @@ class WiFiData(
         groupBy: GroupBy,
     ): (List<WiFiDetail>) -> WiFiDetail =
         {
-            val sortedWith: List<WiFiDetail> = it.sortedWith(groupBy.sort)
+            val sortedWith = it.sortedWith(groupBy.sort)
             when (sortedWith.size) {
                 1 -> sortedWith.first()
                 else ->
@@ -83,8 +85,7 @@ class WiFiData(
         when (wiFiDetail) {
             connection -> connection
             else -> {
-                val vendorName: String =
-                    MainContext.INSTANCE.vendorService.findVendorName(wiFiDetail.wiFiIdentifier.bssid)
+                val vendorName = vendorService().findVendorName(wiFiDetail.wiFiIdentifier.bssid)
                 val wiFiAdditional = WiFiAdditional(vendorName, WiFiConnection.EMPTY)
                 WiFiDetail(wiFiDetail, wiFiAdditional)
             }
@@ -93,7 +94,7 @@ class WiFiData(
     private fun connected(it: WiFiDetail): Boolean = wiFiConnection.wiFiIdentifier.equals(it.wiFiIdentifier, true)
 
     private fun copy(wiFiDetail: WiFiDetail): WiFiDetail {
-        val vendorName: String = MainContext.INSTANCE.vendorService.findVendorName(wiFiDetail.wiFiIdentifier.bssid)
+        val vendorName = vendorService().findVendorName(wiFiDetail.wiFiIdentifier.bssid)
         val wiFiAdditional = WiFiAdditional(vendorName, wiFiConnection)
         return WiFiDetail(wiFiDetail, wiFiAdditional)
     }

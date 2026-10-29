@@ -18,12 +18,12 @@
 package com.vrem.wifianalyzer
 
 import android.content.Context
-import android.content.res.Resources
 import android.net.wifi.WifiManager
 import android.os.Handler
 import android.os.Looper
 import android.view.LayoutInflater
 import com.vrem.wifianalyzer.permission.PermissionService
+import com.vrem.wifianalyzer.settings.AppLocales
 import com.vrem.wifianalyzer.settings.Repository
 import com.vrem.wifianalyzer.settings.Settings
 import com.vrem.wifianalyzer.vendor.model.VendorService
@@ -31,6 +31,9 @@ import com.vrem.wifianalyzer.wifi.filter.adapter.FiltersAdapter
 import com.vrem.wifianalyzer.wifi.manager.WiFiManagerWrapper
 import com.vrem.wifianalyzer.wifi.scanner.ScannerService
 import com.vrem.wifianalyzer.wifi.scanner.makeScannerService
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.android.asCoroutineDispatcher
 
 enum class MainContext {
     INSTANCE,
@@ -44,10 +47,9 @@ enum class MainContext {
     lateinit var vendorService: VendorService
     lateinit var configuration: Configuration
     lateinit var filtersAdapter: FiltersAdapter
+    lateinit var coroutineScope: CoroutineScope
 
     val context: Context get() = mainActivity.applicationContext
-
-    val resources: Resources get() = context.resources
 
     val layoutInflater: LayoutInflater get() = mainActivity.layoutInflater
 
@@ -59,11 +61,20 @@ enum class MainContext {
     ) {
         mainActivity = activity
         configuration = Configuration(largeScreen)
-        settings = Settings(Repository(context))
+        settings = Settings(Repository(context), AppLocales(context))
         vendorService = VendorService(activity.resources)
         wiFiManagerWrapper = WiFiManagerWrapper(wiFiManager)
         permissionService = PermissionService(activity)
-        scannerService = makeScannerService(mainActivity, wiFiManagerWrapper, Handler(Looper.getMainLooper()), settings)
+        coroutineScope = CoroutineScope(SupervisorJob() + Handler(Looper.getMainLooper()).asCoroutineDispatcher())
+        scannerService =
+            makeScannerService(
+                mainActivity,
+                wiFiManagerWrapper,
+                permissionService,
+                coroutineScope,
+                settings,
+                configuration,
+            )
         filtersAdapter = FiltersAdapter(settings)
     }
 }

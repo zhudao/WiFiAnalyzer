@@ -20,9 +20,9 @@ package com.vrem.wifianalyzer.navigation.availability
 import android.view.Menu
 import android.view.MenuItem
 import com.vrem.wifianalyzer.MainActivity
-import com.vrem.wifianalyzer.MainContextHelper.INSTANCE
 import com.vrem.wifianalyzer.R
 import com.vrem.wifianalyzer.navigation.options.OptionMenu
+import com.vrem.wifianalyzer.wifi.scanner.ScannerService
 import org.junit.After
 import org.junit.Test
 import org.mockito.kotlin.mock
@@ -36,7 +36,8 @@ class ScannerSwitchOnTest {
     private val optionMenu: OptionMenu = mock()
     private val menu: Menu = mock()
     private val menuItem: MenuItem = mock()
-    private val scanner = INSTANCE.scannerService
+    private val scanner: ScannerService = mock()
+    private val fixture: NavigationOption = scannerMenuItem { scanner }
 
     @After
     fun tearDown() {
@@ -45,18 +46,17 @@ class ScannerSwitchOnTest {
         verifyNoMoreInteractions(menu)
         verifyNoMoreInteractions(menuItem)
         verifyNoMoreInteractions(scanner)
-        INSTANCE.restore()
     }
 
     @Test
     fun navigationOptionScannerSwitchOn() {
-        // setup
+        // Arrange
         whenever(mainActivity.optionMenu).thenReturn(optionMenu)
         whenever(optionMenu.menu).thenReturn(menu)
         whenever(menu.findItem(R.id.action_scanner)).thenReturn(menuItem)
-        // execute
-        navigationOptionScannerSwitchOn(mainActivity)
-        // validate
+        // Act
+        fixture(mainActivity)
+        // Assert
         verify(mainActivity).optionMenu
         verify(optionMenu).menu
         verify(menu).findItem(R.id.action_scanner)
@@ -68,14 +68,14 @@ class ScannerSwitchOnTest {
 
     @Test
     fun navigationOptionScannerSwitchOnWithScannerRunningUpdateMenuItemIconAndTitle() {
-        // setup
+        // Arrange
         whenever(scanner.running()).thenReturn(true)
         whenever(mainActivity.optionMenu).thenReturn(optionMenu)
         whenever(optionMenu.menu).thenReturn(menu)
         whenever(menu.findItem(R.id.action_scanner)).thenReturn(menuItem)
-        // execute
-        navigationOptionScannerSwitchOn(mainActivity)
-        // validate
+        // Act
+        fixture(mainActivity)
+        // Assert
         verify(mainActivity).optionMenu
         verify(optionMenu).menu
         verify(menu).findItem(R.id.action_scanner)
@@ -87,14 +87,14 @@ class ScannerSwitchOnTest {
 
     @Test
     fun navigationOptionScannerSwitchOnWithScannerNotRunningUpdateMenuItemIconAndTitle() {
-        // setup
+        // Arrange
         whenever(scanner.running()).thenReturn(false)
         whenever(mainActivity.optionMenu).thenReturn(optionMenu)
         whenever(optionMenu.menu).thenReturn(menu)
         whenever(menu.findItem(R.id.action_scanner)).thenReturn(menuItem)
-        // execute
-        navigationOptionScannerSwitchOn(mainActivity)
-        // validate
+        // Act
+        fixture(mainActivity)
+        // Assert
         verify(mainActivity).optionMenu
         verify(optionMenu).menu
         verify(menu).findItem(R.id.action_scanner)
@@ -106,12 +106,12 @@ class ScannerSwitchOnTest {
 
     @Test
     fun navigationOptionScannerSwitchOnWithNoMenuDoesNotSetVisibleTrue() {
-        // setup
+        // Arrange
         whenever(mainActivity.optionMenu).thenReturn(optionMenu)
         whenever(optionMenu.menu).thenReturn(null)
-        // execute
-        navigationOptionScannerSwitchOn(mainActivity)
-        // validate
+        // Act
+        fixture(mainActivity)
+        // Assert
         verify(mainActivity).optionMenu
         verify(optionMenu).menu
         verify(menu, never()).findItem(R.id.action_scanner)

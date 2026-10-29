@@ -17,21 +17,23 @@
  */
 package com.vrem.wifianalyzer.wifi.filter
 
-import android.app.AlertDialog
 import android.os.Build
 import android.text.Editable
+import android.text.TextWatcher
 import android.view.View
 import android.widget.EditText
+import androidx.appcompat.app.AlertDialog
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.vrem.wifianalyzer.R
 import com.vrem.wifianalyzer.RobolectricUtil
 import com.vrem.wifianalyzer.wifi.filter.SSIDFilter.OnChange
 import com.vrem.wifianalyzer.wifi.filter.adapter.SSIDAdapter
+import org.assertj.core.api.Assertions.assertThat
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
-import org.mockito.kotlin.any
+import org.mockito.kotlin.argumentCaptor
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.verifyNoMoreInteractions
@@ -39,17 +41,18 @@ import org.mockito.kotlin.whenever
 import org.robolectric.annotation.Config
 
 @RunWith(AndroidJUnit4::class)
-@Config(sdk = [Build.VERSION_CODES.BAKLAVA])
+@Config(sdk = [Build.VERSION_CODES.CINNAMON_BUN])
 class SSIDFilterTest {
     private val alertDialog: AlertDialog = mock()
     private val editText: EditText = mock()
     private val view: View = mock()
     private val ssidAdapter: SSIDAdapter = mock()
     private val editable: Editable = mock()
+    private val textWatcherArgumentCaptor = argumentCaptor<TextWatcher>()
 
     @Before
     fun setUp() {
-        RobolectricUtil.INSTANCE.activity
+        RobolectricUtil.INSTANCE.mainActivity
     }
 
     @After
@@ -63,33 +66,34 @@ class SSIDFilterTest {
 
     @Test
     fun sSIDFilterWithValues() {
-        // setup
+        // Arrange
         val values: Set<String> = setOf("", " ", "ABC", " JDS ")
         whenever(ssidAdapter.selections).thenReturn(values)
         whenever(alertDialog.findViewById<EditText>(R.id.filterSSIDtext)).thenReturn(editText)
         whenever(alertDialog.findViewById<View>(R.id.filterSSID)).thenReturn(view)
         val expected = "ABC JDS"
-        // execute
+        // Act
         SSIDFilter(ssidAdapter, alertDialog)
-        // verify
+        // Assert
         verify(ssidAdapter).selections
         verify(editText).setText(expected)
         verify(alertDialog).findViewById<EditText>(R.id.filterSSIDtext)
         verify(alertDialog).findViewById<View>(R.id.filterSSID)
         verify(view).visibility = View.VISIBLE
-        verify(editText).addTextChangedListener(any())
+        verify(editText).addTextChangedListener(textWatcherArgumentCaptor.capture())
+        assertThat(textWatcherArgumentCaptor.firstValue).isInstanceOf(OnChange::class.java)
     }
 
     @Test
     fun onChangeAfterTextChangedWithValues() {
-        // setup
+        // Arrange
         val value = " ABS ADF "
         val onChange = OnChange(ssidAdapter)
         whenever(editable.toString()).thenReturn(value)
         val expected: Set<String> = setOf("ABS", "ADF")
-        // execute
+        // Act
         onChange.afterTextChanged(editable)
-        // verify
+        // Assert
         verify(ssidAdapter).selections = expected
     }
 }

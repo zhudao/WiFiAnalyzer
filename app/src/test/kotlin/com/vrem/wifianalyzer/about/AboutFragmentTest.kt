@@ -17,10 +17,10 @@
  */
 package com.vrem.wifianalyzer.about
 
-import android.content.pm.PackageInfo
 import android.os.Build
 import android.view.View
 import android.widget.TextView
+import androidx.appcompat.app.AlertDialog
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.vrem.util.packageInfo
 import com.vrem.util.readFile
@@ -36,16 +36,15 @@ import org.mockito.kotlin.atLeastOnce
 import org.mockito.kotlin.doReturn
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
-import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
-import org.robolectric.shadows.ShadowAlertDialog
+import org.robolectric.shadows.ShadowDialog
 import java.text.SimpleDateFormat
 import java.util.Date
 
 @RunWith(AndroidJUnit4::class)
-@Config(sdk = [Build.VERSION_CODES.BAKLAVA])
+@Config(sdk = [Build.VERSION_CODES.CINNAMON_BUN])
 class AboutFragmentTest {
-    private val mainActivity = RobolectricUtil.INSTANCE.activity
+    private val mainActivity = RobolectricUtil.INSTANCE.mainActivity
     private val configuration = MainContextHelper.INSTANCE.configuration
     private val wiFiManagerWrapper = MainContextHelper.INSTANCE.wiFiManagerWrapper
     private val fixture = AboutFragment()
@@ -78,53 +77,53 @@ class AboutFragmentTest {
 
     @Test
     fun versionNumber() {
-        // setup
-        val expected: String = version() + "SL" + " (" + Build.VERSION.RELEASE + "-" + Build.VERSION.SDK_INT + ")"
-        // execute
+        // Arrange
+        val expected = version() + "SL" + " (" + Build.VERSION.RELEASE + "-" + Build.VERSION.SDK_INT + ") "
+        // Act
         val actual = fixture.requireView().findViewById<TextView>(R.id.about_version_info)
-        // validate
+        // Assert
         assertThat(actual).isNotNull()
         assertThat(actual.text).isEqualTo(expected)
     }
 
     @Test
     fun packageName() {
-        // execute
+        // Act
         val actual = fixture.requireView().findViewById<TextView>(R.id.about_package_name)
-        // validate
+        // Assert
         assertThat(actual).isNotNull()
         assertThat(actual.text).isEqualTo(fixture.requireActivity().packageName)
     }
 
     @Test
     fun applicationName() {
-        // setup
+        // Arrange
         val expected = fixture.getString(R.string.app_full_name)
-        // execute
+        // Act
         val actual = fixture.requireView().findViewById<TextView>(R.id.about_application_name)
-        // validate
+        // Assert
         assertThat(actual).isNotNull()
         assertThat(actual.text).isEqualTo(expected)
     }
 
     @Test
     fun copyright() {
-        // setup
+        // Arrange
         val expected = (fixture.getString(R.string.app_copyright) + SimpleDateFormat("yyyy").format(Date()))
-        // execute
+        // Act
         val actual = fixture.requireView().findViewById<TextView>(R.id.about_copyright)
-        // validate
+        // Assert
         assertThat(actual).isNotNull()
         assertThat(actual.text).isEqualTo(expected)
     }
 
     @Test
     fun device() {
-        // setup
+        // Arrange
         val expected = "robolectric - robolectric - robolectric"
-        // execute
+        // Act
         val actual = fixture.requireView().findViewById<TextView>(R.id.about_device)
-        // validate
+        // Assert
         assertThat(actual).isNotNull()
         assertThat(actual.text).isEqualTo(expected)
     }
@@ -159,11 +158,11 @@ class AboutFragmentTest {
 
     @Test
     fun writeReview() {
-        // setup
+        // Arrange
         val view = fixture.requireView().findViewById<View>(R.id.writeReview)
-        // execute
+        // Act
         val actual = view.performClick()
-        //
+        // Assert
         assertThat(actual).isTrue
     }
 
@@ -171,12 +170,12 @@ class AboutFragmentTest {
     fun alertDialogClickListener() {
         validateAlertDialogClickListener(R.id.contributors, R.string.about_contributor_title, R.raw.contributors)
         validateAlertDialogClickListener(R.id.license, R.string.gpl, R.raw.gpl)
-        validateAlertDialogClickListener(R.id.graphViewLicense, R.string.al, R.raw.al)
+        validateAlertDialogClickListener(R.id.graphLicense, R.string.al, R.raw.al)
         validateAlertDialogClickListener(R.id.materialDesignIconsLicense, R.string.al, R.raw.al)
     }
 
     private fun version(): String {
-        val packageInfo: PackageInfo = fixture.requireActivity().packageInfo()
+        val packageInfo = fixture.requireActivity().packageInfo()
         return packageInfo.versionName + " - " + packageInfo.longVersionCode
     }
 
@@ -185,16 +184,17 @@ class AboutFragmentTest {
         titleId: Int,
         messageId: Int,
     ) {
-        // setup
+        // Arrange
         val view = fixture.view!!.findViewById<View>(viewId)
         val expectedTitle = fixture.requireActivity().applicationContext.getString(titleId)
         val expectedMessage = readFile(fixture.requireActivity().resources, messageId)
-        // execute
+        // Act
         view.performClick()
-        // validate
-        val alertDialog = ShadowAlertDialog.getLatestAlertDialog()
-        val shadowAlertDialog = shadowOf(alertDialog)
-        assertThat(shadowAlertDialog.title.toString()).isEqualTo(expectedTitle)
-        assertThat(shadowAlertDialog.message.toString()).isEqualTo(expectedMessage)
+        // Assert
+        val alertDialog = ShadowDialog.getLatestDialog() as AlertDialog
+        val actualTitle = alertDialog.findViewById<TextView>(androidx.appcompat.R.id.alertTitle)!!.text
+        val actualMessage = alertDialog.findViewById<TextView>(android.R.id.message)!!.text
+        assertThat(actualTitle.toString()).isEqualTo(expectedTitle)
+        assertThat(actualMessage.toString()).isEqualTo(expectedMessage)
     }
 }

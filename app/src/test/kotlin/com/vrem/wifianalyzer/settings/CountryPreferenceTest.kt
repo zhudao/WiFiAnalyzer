@@ -18,31 +18,44 @@
 package com.vrem.wifianalyzer.settings
 
 import android.os.Build
+import androidx.preference.PreferenceManager
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.vrem.wifianalyzer.R
 import com.vrem.wifianalyzer.RobolectricUtil
 import com.vrem.wifianalyzer.wifi.band.WiFiChannelCountry.Companion.findAll
 import org.assertj.core.api.Assertions.assertThat
+import org.junit.After
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.mockito.kotlin.doReturn
+import org.mockito.kotlin.mock
+import org.mockito.kotlin.verify
+import org.mockito.kotlin.verifyNoMoreInteractions
+import org.mockito.kotlin.whenever
 import org.robolectric.Robolectric
 import org.robolectric.annotation.Config
 import java.util.Locale
 
 @RunWith(AndroidJUnit4::class)
-@Config(sdk = [Build.VERSION_CODES.BAKLAVA])
+@Config(sdk = [Build.VERSION_CODES.CINNAMON_BUN])
 class CountryPreferenceTest {
-    private val mainActivity = RobolectricUtil.INSTANCE.activity
+    private val mainActivity = RobolectricUtil.INSTANCE.mainActivity
     private val countries = findAll()
     private val attributeSet = Robolectric.getAttributeSetFromXml(R.xml.test_attrs)
     private val fixture = CountryPreference(mainActivity, attributeSet)
     private val currentLocale = Locale.getDefault()
+    private val settings: Settings = mock()
+
+    @After
+    fun tearDown() {
+        verifyNoMoreInteractions(settings)
+    }
 
     @Test
     fun entries() {
-        // execute
+        // Act
         val actual: Array<CharSequence> = fixture.entries
-        // validate
+        // Assert
         assertThat(actual).hasSize(countries.size)
         countries.forEach {
             assertThat(actual).contains(it.countryName(currentLocale))
@@ -51,12 +64,43 @@ class CountryPreferenceTest {
 
     @Test
     fun entryValues() {
-        // execute
+        // Act
         val actual: Array<CharSequence> = fixture.entryValues
-        // validate
+        // Assert
         assertThat(actual).hasSize(countries.size)
         countries.forEach {
             assertThat(actual).contains(it.countryCode)
         }
+    }
+
+    @Test
+    fun countryDataNamesCountriesInTheLocaleFromSettings() {
+        // Arrange
+        val locale = Locale.GERMAN
+        doReturn(locale).whenever(settings).languageLocale()
+        // Act
+        val actual = countryData(settings)
+        // Assert
+        assertThat(actual).hasSize(countries.size)
+        countries.forEach {
+            assertThat(actual).contains(Data(it.countryCode, it.countryName(locale)))
+        }
+        verify(settings).languageLocale()
+    }
+
+    @Test
+    fun valueIsDefaultCountryCodeFromSettings() {
+        // Arrange
+        val countryCode = "CA"
+        doReturn(Locale.GERMAN).whenever(settings).languageLocale()
+        doReturn(countryCode).whenever(settings).defaultCountryCode()
+        val preferenceScreen = PreferenceManager(mainActivity).createPreferenceScreen(mainActivity)
+        val countryPreference = CountryPreference(mainActivity, attributeSet, settings)
+        // Act
+        preferenceScreen.addPreference(countryPreference)
+        // Assert
+        assertThat(countryPreference.value).isEqualTo(countryCode)
+        verify(settings).languageLocale()
+        verify(settings).defaultCountryCode()
     }
 }

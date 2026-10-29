@@ -40,7 +40,6 @@
     <string name="ap_view_complete">"Részletes"</string>
     <string name="ap_view_title">"Hozzáférési pont nézet"</string>
     <string name="app_copyright">"Minden jog fenntartva \u00A9 2015 \u002D "</string>
-    <string name="channel_graph_legend_title">"Csatorna grafikon jelmagyarázat"</string>
     <string name="channel_rating_best">"Legjobb csatornák:"</string>
     <string name="channel_rating_best_alternative">"%1$s, próbálja meg a másik Wi‑Fi sávot: %2$s"</string>
     <string name="channel_rating_best_none">"Nincs"</string>
@@ -65,9 +64,6 @@
     <string name="filter_wifi_band_title">"Wi‑Fi sáv"</string>
     <string name="graph_axis_y">"Jelerősség (dBm)"</string>
     <string name="graph_channel_axis_x">"Wi‑Fi csatornák"</string>
-    <string name="graph_legend_hide">"Elrejtés"</string>
-    <string name="graph_legend_left">"Bal"</string>
-    <string name="graph_legend_right">"Jobb"</string>
     <string name="graph_maximum_y_title">"Grafikon maximális jelerősség"</string>
     <string name="graph_time_axis_x">"Szkennelések száma"</string>
     <string name="group_by_channel">"Csatorna"</string>
@@ -75,6 +71,7 @@
     <string name="group_by_title">"Hozzáférési pontok csoportosítása"</string>
     <string name="group_by_virtual">"Virtuális"</string>
     <string name="keep_screen_on_title">"Képernyő bekapcsolva tartása"</string>
+    <string name="language_system_default">"Rendszerbeállítás"</string>
     <string name="language_title">"Nyelv"</string>
     <string name="location_msg">"Ez az alkalmazás a pontos helyzetét kaphatja meg a helymeghatározó szolgáltatásoktól, miközben használja az alkalmazást. A készülék helymeghatározó szolgáltatásait be kell kapcsolni az alkalmazás használatához. Ez megnövelheti az akkumulátorhasználatot."</string>
     <string name="navigation_drawer_close">"Navigációs menü bezárása"</string>
@@ -98,7 +95,6 @@
     <string name="theme_system">"Rendszer"</string>
     <string name="theme_title">"Téma"</string>
     <string name="throttling_msg">"Az Android 9 bevezette a Wi‑Fi szkennelés korlátozását. Az Android 10 új fejlesztői beállítással rendelkezik a korlátozás kikapcsolásához: (Beállítások - Fejlesztői beállítások - Hálózat - Wi‑Fi szkennelés korlátozása)."</string>
-    <string name="time_graph_legend_title">"Időgrafikon jelmagyarázat"</string>
     <string name="wifi_off_on_exit_title">"Wi‑Fi kikapcsolása kilépéskor"</string>
     <string name="wifi_throttling_off">"A Wi‑Fi szkennelés korlátozása tiltva"</string>
     <string name="wifi_throttling_on">"A Wi‑Fi szkennelés korlátozása engedélyezve"</string>

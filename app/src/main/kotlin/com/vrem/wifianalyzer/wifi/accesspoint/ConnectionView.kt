@@ -26,36 +26,33 @@ import com.vrem.wifianalyzer.MainActivity
 import com.vrem.wifianalyzer.MainContext
 import com.vrem.wifianalyzer.R
 import com.vrem.wifianalyzer.settings.Settings
+import com.vrem.wifianalyzer.wifi.detailview.WiFiDetailPopup
+import com.vrem.wifianalyzer.wifi.detailview.WiFiDetailView
 import com.vrem.wifianalyzer.wifi.model.WiFiConnection
 import com.vrem.wifianalyzer.wifi.model.WiFiData
-import com.vrem.wifianalyzer.wifi.model.WiFiDetail
-import com.vrem.wifianalyzer.wifi.scanner.UpdateNotifier
 
 class ConnectionView(
     private val mainActivity: MainActivity,
-    private val accessPointDetail: AccessPointDetail = AccessPointDetail(),
-    private val accessPointPopup: AccessPointPopup = AccessPointPopup(),
+    private val wiFiDetailView: WiFiDetailView = WiFiDetailView(),
+    private val wiFiDetailPopup: WiFiDetailPopup = WiFiDetailPopup(),
     private val warningView: WarningView = WarningView(mainActivity),
-) : UpdateNotifier {
-    override fun update(wiFiData: WiFiData) {
-        val mainContext = MainContext.INSTANCE
-        displayConnection(wiFiData, mainContext.settings)
-        displayWiFiSupport(mainContext.settings)
+    private val settings: Settings = MainContext.INSTANCE.settings,
+) {
+    fun update(wiFiData: WiFiData) {
+        displayConnection(wiFiData)
+        displayWiFiSupport()
         warningView.update(wiFiData)
     }
 
-    private fun displayWiFiSupport(settings: Settings) {
+    private fun displayWiFiSupport() {
         val wiFiBand = settings.wiFiBand()
         val visibility = if (wiFiBand.available()) View.GONE else View.VISIBLE
         val textView = mainActivity.findViewById<TextView>(R.id.main_wifi_support)
         textView.visibility = visibility
-        textView.text = mainActivity.resources.getString(wiFiBand.textResource)
+        textView.text = mainActivity.getString(wiFiBand.textResource)
     }
 
-    private fun displayConnection(
-        wiFiData: WiFiData,
-        settings: Settings,
-    ) {
+    private fun displayConnection(wiFiData: WiFiData) {
         val connectionViewType = settings.connectionViewType()
         val connection = wiFiData.connection()
         val connectionView = mainActivity.findViewById<View>(R.id.connection)
@@ -66,12 +63,12 @@ class ConnectionView(
             connectionView.visibility = View.VISIBLE
             val parent = connectionView.findViewById<ViewGroup>(R.id.connectionDetail)
             val view =
-                accessPointDetail.makeView(parent.getChildAt(0), parent, connection, layout = connectionViewType.layout)
+                wiFiDetailView.makeView(parent.getChildAt(0), parent, connection, layout = connectionViewType.layout)
             if (parent.isEmpty()) {
                 parent.addView(view)
             }
             setViewConnection(connectionView, wiFiConnection)
-            attachPopup(view, connection)
+            wiFiDetailPopup.attachToRow(view, connection)
         }
     }
 
@@ -88,16 +85,6 @@ class ConnectionView(
         } else {
             textLinkSpeed.visibility = View.VISIBLE
             textLinkSpeed.text = "$linkSpeed${WifiInfo.LINK_SPEED_UNITS}"
-        }
-    }
-
-    private fun attachPopup(
-        view: View,
-        wiFiDetail: WiFiDetail,
-    ) {
-        view.findViewById<View>(R.id.attachPopup)?.let {
-            accessPointPopup.attach(it, wiFiDetail)
-            accessPointPopup.attach(view.findViewById(R.id.ssid), wiFiDetail)
         }
     }
 }

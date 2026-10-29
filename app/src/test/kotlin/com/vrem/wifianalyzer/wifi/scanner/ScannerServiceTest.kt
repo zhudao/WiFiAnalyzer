@@ -17,10 +17,12 @@
  */
 package com.vrem.wifianalyzer.wifi.scanner
 
-import android.os.Handler
+import com.vrem.wifianalyzer.Configuration
 import com.vrem.wifianalyzer.MainActivity
+import com.vrem.wifianalyzer.permission.PermissionService
 import com.vrem.wifianalyzer.settings.Settings
 import com.vrem.wifianalyzer.wifi.manager.WiFiManagerWrapper
+import kotlinx.coroutines.CoroutineScope
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.After
 import org.junit.Test
@@ -30,25 +32,37 @@ import org.mockito.kotlin.verifyNoMoreInteractions
 class ScannerServiceTest {
     private val wiFiManagerWrapper: WiFiManagerWrapper = mock()
     private val mainActivity: MainActivity = mock()
-    private val handler: Handler = mock()
+    private val permissionService: PermissionService = mock()
+    private val coroutineScope: CoroutineScope = mock()
     private val settings: Settings = mock()
+    private val configuration: Configuration = mock()
 
     @After
     fun tearDown() {
         verifyNoMoreInteractions(wiFiManagerWrapper)
         verifyNoMoreInteractions(mainActivity)
-        verifyNoMoreInteractions(handler)
+        verifyNoMoreInteractions(permissionService)
+        verifyNoMoreInteractions(coroutineScope)
         verifyNoMoreInteractions(settings)
+        verifyNoMoreInteractions(configuration)
     }
 
     @Test
     fun makeScannerService() {
-        // setup
-        // execute
-        val actual = makeScannerService(mainActivity, wiFiManagerWrapper, handler, settings) as Scanner
-        // validate
+        // Act
+        val actual =
+            makeScannerService(
+                mainActivity,
+                wiFiManagerWrapper,
+                permissionService,
+                coroutineScope,
+                settings,
+                configuration,
+            ) as Scanner
+        // Assert
         assertThat(actual.wiFiManagerWrapper).isEqualTo(wiFiManagerWrapper)
         assertThat(actual.settings).isEqualTo(settings)
+        assertThat(actual.permissionService).isEqualTo(permissionService)
         assertThat(actual.transformer).isNotNull()
         assertThat(actual.periodicScan).isNotNull()
         assertThat(actual.scannerCallback).isNotNull()
